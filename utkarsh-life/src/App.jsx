@@ -432,8 +432,8 @@ function App() {
         </div>
       </div>
 
-      {/* Main Game App Container (Mobile + Desktop Center Panel) */}
-      <div className="flex flex-col h-full lg:h-[90vh] w-full max-w-md mx-auto relative overflow-hidden shadow-2xl border-x border-[var(--color-cyber-border)] rounded-none lg:rounded-3xl">
+      {/* Main Game App Container (Mobile + Wide Desktop Web Center Panel) */}
+      <div className="flex flex-col h-full lg:h-[92vh] w-full max-w-md md:max-w-xl lg:max-w-4xl mx-auto relative overflow-hidden shadow-2xl border-x border-[var(--color-cyber-border)] rounded-none lg:rounded-3xl bg-[var(--color-cyber-dark)]">
         <NewsFeed />
         <Header 
           coins={Math.floor(coins)} 
