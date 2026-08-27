@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { formatCoins, LEVELS, CEO_SKINS } from '../utils/gameLogic';
+import { LEVELS, CEO_SKINS } from '../utils/gameLogic';
 import { soundManager } from '../utils/soundManager';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, ScanText } from 'lucide-react';
