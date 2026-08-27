@@ -21,7 +21,43 @@ const MIME_TYPES = {
   '.webmanifest': 'application/manifest+json'
 };
 
+// In-Memory Cloud Sync Cache
+const playerSaves = new Map();
+
 const server = http.createServer((req, res) => {
+  // API Routes
+  if (req.url === '/api/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: 'online',
+      server: 'Utkarsh Life Production Server',
+      version: '3.5.0',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    }));
+    return;
+  }
+
+  if (req.url === '/api/sync' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        if (data.userId) {
+          playerSaves.set(data.userId, data.gameState);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: 'Cloud save synced!' }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
+  // Static File Serving
   let filePath = path.join(DIST_DIR, req.url === '/' ? 'index.html' : req.url);
   const ext = path.extname(filePath).toLowerCase();
 
@@ -52,5 +88,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`🚀 Standalone Production Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Standalone Production Server running on port ${PORT}`);
+  console.log(`📡 Health Check API: http://localhost:${PORT}/api/health`);
 });
