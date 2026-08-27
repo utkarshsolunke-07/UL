@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { formatCoins, LEVELS, getDailyCipherWord, MORSE_CODE_DICT, CEO_SKINS } from '../utils/gameLogic';
+import { formatCoins, LEVELS, CEO_SKINS } from '../utils/gameLogic';
 import { soundManager } from '../utils/soundManager';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, ScanText } from 'lucide-react';
@@ -10,23 +10,14 @@ export default function Exchange({
   maxEnergy, 
   onTap, 
   levelIndex, 
-  onCipherSolved, 
-  cipherSolved,
   onRedeemCode,
   selectedSkin,
   tapPower
 }) {
   const [clicks, setClicks] = useState([]);
-  const [cipherMode, setCipherMode] = useState(false);
   const [hotCodeInput, setHotCodeInput] = useState('');
-  const [showHotCodes, setShowHotCodes] = useState(false);
-  const [morseInput, setMorseInput] = useState('');
-  const [decodedWord, setDecodedWord] = useState('');
+  const [showHotCodes, setShowHotCodes] = useState(true);
   const coinRef = useRef(null);
-  
-  const targetWord = getDailyCipherWord();
-  const tapStartTime = useRef(0);
-  const cipherTimeout = useRef(null);
 
   const activeSkin = CEO_SKINS.find(s => s.id === selectedSkin) || CEO_SKINS[0];
 
@@ -47,10 +38,7 @@ export default function Exchange({
 
   const handlePointerDown = (e) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    if (energy <= 0 && !cipherMode) return;
-
-    tapStartTime.current = Date.now();
-    clearTimeout(cipherTimeout.current);
+    if (energy <= 0) return;
 
     const rect = coinRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -64,85 +52,39 @@ export default function Exchange({
 
     coinRef.current.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(0.95)`;
 
-    if (!cipherMode) {
-      soundManager.playTap();
-      onTap(tapPower);
-      const newClick = { id: Date.now() + Math.random(), x: e.clientX, y: e.clientY, text: `+${tapPower}` };
-      setClicks((prev) => [...prev, newClick]);
-      setTimeout(() => {
-        setClicks((prev) => prev.filter((c) => c.id !== newClick.id));
-      }, 1000);
-    }
+    soundManager.playTap();
+    onTap(tapPower);
+    const newClick = { id: Date.now() + Math.random(), x: e.clientX, y: e.clientY, text: `+${tapPower}` };
+    setClicks((prev) => [...prev, newClick]);
+    setTimeout(() => {
+      setClicks((prev) => prev.filter((c) => c.id !== newClick.id));
+    }, 1000);
   };
 
   const handlePointerUp = () => {
     if (coinRef.current) {
       coinRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)';
     }
-
-    if (cipherMode && !cipherSolved) {
-      const duration = Date.now() - tapStartTime.current;
-      const symbol = duration > 250 ? '-' : '.';
-      
-      setMorseInput(prev => prev + symbol);
-
-      cipherTimeout.current = setTimeout(() => {
-        setMorseInput(currentMorse => {
-          if (!currentMorse) return '';
-          
-          const letter = Object.keys(MORSE_CODE_DICT).find(key => MORSE_CODE_DICT[key] === currentMorse);
-          
-          if (letter) {
-            setDecodedWord(prev => {
-              const newWord = prev + letter;
-              if (targetWord.startsWith(newWord)) {
-                if (newWord === targetWord) {
-                  onCipherSolved();
-                  setCipherMode(false);
-                }
-                return newWord;
-              }
-              return '';
-            });
-          } else {
-            setDecodedWord('');
-          }
-          return '';
-        });
-      }, 800);
-    }
   };
 
   const progressPct = LEVELS[levelIndex + 1] 
-    ? ((coins / LEVELS[levelIndex + 1].minCoins) * 100) 
+    ? (coins / LEVELS[levelIndex + 1].minCoins) * 100
     : 100;
 
   return (
     <div className="flex flex-col items-center pt-4 pb-32 px-4 select-none touch-pan-y h-full relative overflow-y-auto">
       
-      <div className="w-full flex justify-end gap-2 mb-4">
+      <div className="w-full flex justify-end mb-4">
         <button 
           onClick={() => setShowHotCodes(!showHotCodes)}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border transition-all ${
+          className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 border transition-all ${
             showHotCodes 
               ? 'bg-yellow-400 text-black border-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.6)]' 
               : 'glass-panel text-yellow-400 border-yellow-400/50'
           }`}
         >
-          <ScanText className="w-3.5 h-3.5" />
+          <ScanText className="w-4 h-4" />
           <span>Hot Codes 🔥</span>
-        </button>
-
-        <button 
-          onClick={() => setCipherMode(!cipherMode)}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border transition-all ${
-            cipherMode 
-              ? 'bg-[var(--color-cyber-pink)] border-[var(--color-cyber-pink)] text-white shadow-[0_0_15px_rgba(255,0,127,0.6)]' 
-              : 'glass-panel text-[var(--color-cyber-blue)]'
-          }`}
-        >
-          <ScanText className="w-3.5 h-3.5" />
-          {cipherSolved ? 'Cipher Solved!' : 'Daily Cipher'}
         </button>
       </div>
 
@@ -162,12 +104,6 @@ export default function Exchange({
             Redeem
           </button>
         </form>
-      )}
-
-      {cipherMode && (
-        <div className="mb-4 h-12 flex items-center justify-center text-3xl font-mono tracking-[0.5em] text-[var(--color-cyber-pink)] font-bold drop-shadow-[0_0_10px_rgba(255,0,127,0.8)]">
-          {decodedWord.padEnd(targetWord.length, '_')}
-        </div>
       )}
 
       {/* Coin Balance */}
@@ -206,13 +142,9 @@ export default function Exchange({
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        className={`w-[280px] h-[280px] rounded-full flex items-center justify-center cursor-pointer transition-transform duration-75 relative z-10 ${
-          cipherMode 
-            ? 'bg-[var(--color-cyber-dark)] border-4 border-[var(--color-cyber-pink)] shadow-[0_0_50px_rgba(255,0,127,0.5),inset_0_0_30px_rgba(255,0,127,0.3)]' 
-            : 'bg-[var(--color-cyber-dark)] border-4 border-[var(--color-cyber-blue)] shadow-[0_0_50px_rgba(0,240,255,0.5),inset_0_0_30px_rgba(0,240,255,0.3)]'
-        }`}
+        className="w-[280px] h-[280px] rounded-full flex items-center justify-center cursor-pointer transition-transform duration-75 relative z-10 bg-[var(--color-cyber-dark)] border-4 border-[var(--color-cyber-blue)] shadow-[0_0_50px_rgba(0,240,255,0.5),inset_0_0_30px_rgba(0,240,255,0.3)]"
       >
-        <div className={`absolute inset-3 rounded-full overflow-hidden flex flex-col items-center justify-center ${cipherMode ? 'bg-pink-950/50' : 'bg-cyan-950/50'}`}>
+        <div className="absolute inset-3 rounded-full overflow-hidden flex flex-col items-center justify-center bg-cyan-950/50">
           <div className="w-44 h-44 bg-transparent rounded-full flex items-center justify-center mb-1 overflow-hidden p-2">
             {activeSkin.image ? (
               <img 
@@ -224,13 +156,13 @@ export default function Exchange({
               <span className="text-7xl drop-shadow-[0_0_20px_rgba(0,240,255,0.8)]">{activeSkin.emoji}</span>
             )}
           </div>
-          <span className={`text-2xl font-black uppercase tracking-widest ${cipherMode ? 'text-[var(--color-cyber-pink)] drop-shadow-[0_0_10px_rgba(255,0,127,0.8)]' : 'neon-text-blue'}`}>
+          <span className="text-2xl font-black uppercase tracking-widest neon-text-blue">
             {activeSkin.name}
           </span>
         </div>
       </div>
 
-      {/* Floating texts */}
+      {/* Floating tap numbers */}
       <AnimatePresence>
         {clicks.map((click) => (
           <motion.div
@@ -246,12 +178,6 @@ export default function Exchange({
           </motion.div>
         ))}
       </AnimatePresence>
-
-      {cipherMode && morseInput && (
-        <div className="absolute top-[60%] left-1/2 -translate-x-1/2 text-5xl font-black text-[var(--color-cyber-pink)] pointer-events-none drop-shadow-[0_0_15px_rgba(255,0,127,0.8)] z-50 tracking-[0.2em]">
-          {morseInput}
-        </div>
-      )}
 
       {/* Energy Bar */}
       <div className="absolute bottom-24 left-0 w-full px-6">
