@@ -19,10 +19,11 @@
       radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.15) 0%, transparent 60%),
       radial-gradient(circle at 50% 100%, rgba(255, 215, 0, 0.1) 0%, transparent 60%);
     color: #ffffff;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: pan-y;
+    touch-action: manipulation;
   }
 }
 
